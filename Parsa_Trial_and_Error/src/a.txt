@@ -1,0 +1,92 @@
+#include "Arduino.h"
+
+const int MOTOR_A_2 = 10; // left wheel forward
+const int MOTOR_A_1 = 11; // left wheel backward
+const int MOTOR_B_2 = 5;  // right wheel forward
+const int MOTOR_B_1 = 6;  // right wheel backward
+
+void setup() {
+  // setup code
+  pinMode(MOTOR_A_1, OUTPUT);
+  pinMode(MOTOR_A_2, OUTPUT);
+  pinMode(MOTOR_B_1, OUTPUT);
+  pinMode(MOTOR_B_2, OUTPUT);
+}
+
+void moveForward() {
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 0);
+  analogWrite(MOTOR_A_2, 225);
+  analogWrite(MOTOR_B_2, 255);
+}
+
+void moveBackwards() {
+  analogWrite(MOTOR_A_1, 205);
+  analogWrite(MOTOR_B_1, 255);
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_2, 0);
+}
+
+void fullStop() {
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 0);
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_2, 0);
+}
+
+void turnLeft() {
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 0);
+  analogWrite(MOTOR_A_2, 180);
+  analogWrite(MOTOR_B_2, 255);
+  delay(3000);
+  analogWrite(MOTOR_B_2, 0);
+  analogWrite(MOTOR_A_2, 0);
+}
+
+void turnRight() {
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 0);
+  analogWrite(MOTOR_A_2, 255);
+  analogWrite(MOTOR_B_2, 180);
+  delay(2000);
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_2, 0);
+}
+
+void rotateLeft() {
+  analogWrite(MOTOR_A_1, 255);
+  analogWrite(MOTOR_B_1, 0);
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_2, 255);
+  delay(600);
+  analogWrite(MOTOR_B_2, 0);
+  analogWrite(MOTOR_A_1, 0);
+}
+
+void rotateRight() {
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 255);
+  analogWrite(MOTOR_A_2, 255);
+  analogWrite(MOTOR_B_2, 0);
+  delay(600);
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_1, 0);
+}
+
+void loop() {
+ moveForward();
+ delay(3000);
+ moveBackwards();
+ delay(3000);
+ //turnLeft();
+ //delay(1000);
+ //turnRight();
+ //delay(1000);
+ //rotateLeft();
+ //delay(1000);
+ //rotateRight();
+ //delay(1000);
+ fullStop();
+ while(1);
+}
