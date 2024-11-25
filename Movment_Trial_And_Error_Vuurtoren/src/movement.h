@@ -16,12 +16,12 @@ void setLeftMotorSpeed(int speed);
 void setRightMotorSpeed(int speed);
 void leftRotationCheck();
 void rightRotationCheck();
-void rotationZeroLeft(int distance, byte _left_speed, byte _right_speed);
-void rotationZeroRight(int distance, byte _left_speed, byte _right_speed);
-void rotationForward(int distance, byte _left_speed, byte _right_speed);
-void rotationBackward(int distance, byte _left_speed, byte _right_speed);
-void rotationLeftTurn(int distance, byte _left_speed, byte _right_speed);
-void rotationRightTurn(int distance, byte _left_speed, byte _right_speed);
+void rotationZeroLeft(float distance);
+void rotationZeroRight(float distance);
+void rotationForward(float distance);
+void rotationBackward(float distance);
+void rotationLeftTurn(float distance);
+void rotationRightTurn(float distance);
 void rotationStop();
 
 #endif 
