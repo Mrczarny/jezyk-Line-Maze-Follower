@@ -20,7 +20,7 @@
 
 int _leftCount = 0;                      // variable to update left count
 int _rightCount = 0;                     // variable to update right count
-#define _wheelC (5.4*PI)                // wheel circumfrence
+  #define _wheelC (5.4*PI)                // wheel circumfrence
 byte _left_speed = 127;                  // byte speed to go from 0-255 set to 128 for base 50% left
 byte _right_speed = 127;                 // byte speed to go from 0-255 set to 127 for base 50% right
 
@@ -96,7 +96,7 @@ void rotationZeroLeft(int distance,)
     rotationStop();
 }
 
-void rotationZeroRight(int distance, byte _left_speed, byte _right_speed) // pretend this is rotate
+void rotationZeroRight(float distance)
 {
     rotationStop();
     _leftCount = 0;
@@ -108,7 +108,7 @@ void rotationZeroRight(int distance, byte _left_speed, byte _right_speed) // pre
     }
 }
 
-void rotationForward(int distance, byte _left_speed, byte _right_speed)
+void rotationForward(float distance)
 {
     rotationStop();
     _leftCount = 0;
@@ -120,7 +120,7 @@ void rotationForward(int distance, byte _left_speed, byte _right_speed)
     }
 }
 
-void rotationBackward(int distance, byte _left_speed, byte _right_speed)
+void rotationBackward(float distance)
 {
     rotationStop();
     _leftCount = 0;
@@ -132,7 +132,7 @@ void rotationBackward(int distance, byte _left_speed, byte _right_speed)
     }
 }
 
-void rotationLeftTurn(int distance, byte _left_speed, byte _right_speed)
+void rotationLeftTurn(float distance)
 {
     rotationStop();
     _leftCount = 0;
@@ -144,7 +144,7 @@ void rotationLeftTurn(int distance, byte _left_speed, byte _right_speed)
     }
 }
 
-void rotationRightTurn(int distance, byte _left_speed, byte _right_speed)
+void rotationRightTurn(float distance)
 {
     rotationStop();
     _leftCount = 0;
@@ -161,19 +161,6 @@ void rotationStop()
     motorStop();
 }
     
-    /* while(currentLeftCount < 17 && currentRightCount < 17) {
-        analogWrite(leftbackwards, 200);
-        analogWrite(leftbackwards, 200);
-    }
-
-
-    set wheelC variable
-    distance argument
-    rotations = distance / wheelC
-    while rotation L&R <= rotations
-    movement
-    set to 0 before 
-    */ 
 
 void setLeftMotorSpeed(int speed)
 {
