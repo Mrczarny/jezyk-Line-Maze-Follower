@@ -22,28 +22,25 @@ void setup()
 
 void loop()
 {
-  
- rotationForward(30, 0, 0);
-//  rsStop();
-//  delay(5000);
- /*
+ rotationZeroLeft(100);
+ rotationStop();
  constWait();
- rsZTRight(100, 0, 255);
- rsStop();
+ rotationZeroRight(100);
+ rotationStop();
  constWait();
- rsBackward(100, 255, 255);
- rsStop();
+ rotationBackward(100);
+ rotationStop();
  constWait();
- rsForward(100, 0, 0);
- rsStop();
+ rotationForward(100);
+ rotationStop();
  constWait();
- rsLeftTurn(100, 0, 0);
- rsStop();
+ rotationLeftTurn(100);
+ rotationStop();
  constWait();
- rsRightTurn(100, 255, 255);
- rsStop();
+ rotationRightTurn(100);
+ rotationStop();
  constWait();
  while(1);
- */
+ 
 }
 
