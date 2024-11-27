@@ -21,8 +21,9 @@
 int _leftCount = 0;                      // variable to update left count
 int _rightCount = 0;                     // variable to update right count
   #define _wheelC (5.4*PI)                // wheel circumfrence
-byte _left_speed = 127;                  // byte speed to go from 0-255 set to 128 for base 50% left
-byte _right_speed = 127;                 // byte speed to go from 0-255 set to 127 for base 50% right
+//byte _left_speed = 127;                  // byte speed to go from 0-255 set to 128 for base 50% left
+//byte _right_speed = 127;                 // byte speed to go from 0-255 set to 127 for base 50% right
+static unsigned long timer;
 
 int steps[5]={10,20,30,40,50};           // approx cm to travel
 
@@ -48,10 +49,6 @@ void leftRotationCheck()
         if (state != lastState) 
         {
         _leftCount++;
-        Serial.print('l');
-        Serial.print(_leftCount);
-        Serial.println();
-        lastState = state;
         }
     timer = millis() + COUNT_INTERVAL;
   }
@@ -79,89 +76,158 @@ void rightRotationCheck()
   interrupts();
 }
 
-void rotationZeroLeft(int distance,)
+void rotationZeroLeft(float distance)
 {
-    rotationStop();
-
-    noInterrupts();
+    static unsigned long timer;
     _leftCount = 0;
     _rightCount = 0;
-    interrupts();
-
-    int rotations = distance / _wheelC;
-    while(_leftCount/40 <= rotations && _rightCount/40 <= rotations)
+    int rotations = round(distance / 17 * 40);
+    Serial.print("Target Rotations: ");
+    Serial.println(rotations);
+  if (millis() > timer)
+  {
+    while(_leftCount <= rotations && _rightCount <= rotations)
     {
-      motorZeroLeft(255, 0);    
+      motorZeroLeft(255, 0); 
+       Serial.print("Left count: ");
+       Serial.println(_leftCount);
+       Serial.print("Right count: ");
+       Serial.println(_rightCount);   
     }
-    rotationStop();
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationZeroRight(float distance)
 {
-    rotationStop();
-    _leftCount = 0;
-    _rightCount = 0;
-    int rotations = distance / _wheelC;
+  static unsigned long timer;
+  _leftCount = 0;
+  _rightCount = 0;
+  int rotations = round(distance / 17 * 40);
+  Serial.print("Target Rotations: ");
+  Serial.println(rotations);
+  if (millis() > timer)
+  {
+    int rotations = round(distance / 17 * 40);
     while(_leftCount <= rotations && _rightCount <= rotations)
-    {
-     motorZeroRight(0, 255);
-    }
+      {
+       motorZeroRight(0, 255);
+       Serial.print("Left count: ");
+       Serial.println(_leftCount);
+       Serial.print("Right count: ");
+       Serial.println(_rightCount);
+      }
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationForward(float distance)
 {
-    rotationStop();
-    _leftCount = 0;
-    _rightCount = 0;
-    int rotations = distance / _wheelC;
-    while(_leftCount/40 <= rotations && _rightCount/40 <= rotations)
-    {
-      motorForward(0, 0);
-    }
+  static unsigned long timer;
+  _leftCount = 0;
+  _rightCount = 0;
+  int rotations = round(distance / 17 * 40);
+  Serial.print("Target Rotations: ");
+  Serial.println(rotations);
+  if (millis() > timer)
+  {
+    while(_leftCount <= rotations && _rightCount <= rotations)
+      {
+        motorForward(0, 0);
+        Serial.print("Left count: ");
+        Serial.println(_leftCount);
+        Serial.print("Right count: ");
+        Serial.println(_rightCount);
+      }
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationBackward(float distance)
 {
-    rotationStop();
-    _leftCount = 0;
-    _rightCount = 0;
-    int rotations = distance / _wheelC;
+  static unsigned long timer;
+  _leftCount = 0;
+  _rightCount = 0;
+  int rotations = round(distance / 17 * 40);
+  Serial.print("Target Rotations: ");
+  Serial.println(rotations);
+  if (millis() > timer)
+  {
     while(_leftCount <= rotations && _rightCount <= rotations)
-    {
-     motorBackward(255, 255);
-    }
+      {
+       motorBackward(255, 255);
+       Serial.print("Left count: ");
+       Serial.println(_leftCount);
+       Serial.print("Right count: ");
+       Serial.println(_rightCount);
+      }
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationLeftTurn(float distance)
-{
-    rotationStop();
-    _leftCount = 0;
-    _rightCount = 0;
-    int rotations = distance / _wheelC;
+{    
+  static unsigned long timer;
+  _leftCount = 0;
+  _rightCount = 0;
+  int rotations = round(distance / 17 * 40);
+  Serial.print("Target Rotations: ");
+  Serial.println(rotations);
+  if (millis() > timer)
+  {
     while(_leftCount <= rotations && _rightCount <= rotations)
-    {
-     motorLeftTurn(255, 255);
-    }
+      {
+       motorLeftTurn(255, 255);
+       Serial.print("Left count: ");
+       Serial.println(_leftCount);
+       Serial.print("Right count: ");
+       Serial.println(_rightCount);
+      }
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationRightTurn(float distance)
 {
-    rotationStop();
-    _leftCount = 0;
-    _rightCount = 0;
-    int rotations = distance / _wheelC;
+  static unsigned long timer;
+  _leftCount = 0;
+  _rightCount = 0;
+  int rotations = round(distance / 17 * 40);
+  Serial.print("Target Rotations: ");
+  Serial.println(rotations);
+  if (millis() > timer)
+  {
     while(_leftCount <= rotations && _rightCount <= rotations)
-    {
-     motorZeroRight(255,255);
-    }
+     {
+       motorZeroRight(255,255);
+       Serial.print("Left count: ");
+       Serial.println(_leftCount);
+       Serial.print("Right count: ");
+       Serial.println(_rightCount);
+     }
+    timer = millis()+500;
+  }
+  rotationStop();
+  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationStop()
 {
     motorStop();
+    //timer = millis()+500;
 }
     
-
+/*
 void setLeftMotorSpeed(int speed)
 {
   if (speed >= 0 && speed <= 255)
@@ -172,7 +238,8 @@ void setLeftMotorSpeed(int speed)
     Serial.println(_left_speed);
   }
 }
-
+*/
+/*
 /// @brief Set right motor speed according to speed byte base 50% (can be used in loop to adjust speed during runtime)
 /// @param _speed 
 void setRightMotorSpeed(int speed)
@@ -185,3 +252,4 @@ void setRightMotorSpeed(int speed)
     Serial.println(_right_speed);
   }
 }
+*/
