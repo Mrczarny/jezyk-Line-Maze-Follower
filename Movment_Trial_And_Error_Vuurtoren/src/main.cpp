@@ -4,7 +4,22 @@
 #include <motors.h>
 #include <line.h>
 #include <sonar.h>
-
+/*
+* * * * * * ============================
+ * * * * *  ============================
+* * * * * * ============================
+ * * * * *  ============================
+* * * * * * ============================
+ * * * * *  ============================
+* * * * * * ============================
+ =======================================
+ =======================================
+ =======================================
+ =======================================
+ =======================================
+ =======================================
+ =======================================
+*/
 #define MOVETEST
 
 #define LEFT_MOTOR_ROTATION 3            // left rotation sensor 3
@@ -35,7 +50,10 @@ Rotation rotation(3,2);
 Motors motors(11,8,9,12);
 Line line(8,linePins);
 Sonar sonar(4,7);
-lineSensorData lineState;
+
+static int lastTime = 0;
+
+static lineSensorData lineState;
 
 // function prototypes
 void motorForward(byte _left_speed, byte _right_speed);
@@ -60,6 +78,11 @@ void rotationStop();
 void rotationLeftTurnFix(float distance);
 void lineFollow();
 void objectAvoid();
+uint8_t convertToBinary(lineSensorData line);
+int detectChange();
+bool compareArray(int array1[], int array2[]);
+void moveWithLine();
+void startMaze();
 
 
 void setup()
@@ -80,55 +103,136 @@ void setup()
   motors.setup(0,0,255,255);
   rotation.setup(&motors,0,0);
   line.setup(700);
-}
-
-int intersection[8] = {1, 1, 1, 1, 1, 1, 1, 1};
-int left[8] = {0, 0, 0, 0, 1, 1, 1, 1};
-int right[8] = {1, 1, 1, 1, 0, 0, 0, 0};
-bool compareArray(int array1[], int array2[]) {
-  bool equal = true;
-  for (int i = 0; i < 8; i++)
-  {
-    if (array1[i] != array2[i])
-    {
-      equal = false;
-    }
-  }
-  return equal;
-}
-
-void loop() {
   lineState = line.readLine();
-  int state[8];
-  for (int i = 0; i < 8; i++)
-  {
-    if (lineState.linePoints[i].isLine == true)
-    {
-      state[i] = 1;
-    }
-    else
-    {
-      state[i] = 0;
-    }
-  }
-  if (state[0] == 1 || state[1] == 1)
-  {
-    rotation.turnDegreesRight(5);
-  }
-  else if (state[6] == 1 || state[7] == 1)
-  {
-    rotation.turnDegreesRight(5);
-  }
-  else if (state[0] == 0 && state[1] == 0 && state[2] == 0 && state[3] == 0 && state[4] == 0 && state[5] == 0 && state[6] == 0 && state[7] == 0)
-  {
-    motors.stop();
-  }
-  else
-  {
-    motors.forward(1);
-  }
 }
 
+
+void loop() 
+{
+  startMaze();
+
+  lineState = line.readLine();
+  uint8_t decimal = convertToBinary(lineState);
+
+  switch (decimal)
+  {
+  default:
+  Serial.print("unknown state: ");
+  for (size_t i = 0; i < 8; i++)
+  {
+    Serial.print(lineState.linePoints[i].isLine);
+  }
+  Serial.println();
+    break;
+
+  case 0b00011000:
+    motors.forward();
+    break;
+  case 0b01110000:
+  case 0b00110000:
+  case 0b01100000:
+  case 0b11000000:
+  case 0b00111000:
+    motors.zeroRight();
+    break;
+  case 0b00001100:
+  case 0b00001110:
+  case 0b00000110:
+  case 0b00000011:
+  case 0b00011100:
+    motors.zeroLeft();
+    break;
+  case 0b11101100:
+  case 0b11011000:
+  case 0b11111100:
+  case 0b11111000:
+    rotation.moveForwardFor(5);
+    // rotation.turnDegreesRight(90);
+    Serial.print("zeroRight");
+    for (size_t i = 0; i < 8; i++)
+    {
+      Serial.print(lineState.linePoints[i].isLine);
+    }
+
+    Serial.println();
+    while (convertToBinary(line.readLine()) != 0b00011000)
+    {
+      motors.zeroRight(70);
+    }
+    break;
+  case 0b00010111:
+  case 0b00111111:
+  case 0b00011011:
+  case 0b00011111:
+    rotation.moveForwardFor(5);
+    // rotation.turnDegreesLeft(90);
+    Serial.print("zeroLeft");
+    for (size_t i = 0; i < 8; i++)
+    {
+      Serial.print(lineState.linePoints[i].isLine);
+    }
+    Serial.println();
+    while (convertToBinary(line.readLine()) != 0b00011000)
+    {
+      motors.zeroLeft(70);
+    }
+    break;
+  case 0b11111111:
+    rotation.moveForwardFor(5);
+    if (convertToBinary(line.readLine()) == 0b11111111)
+    {
+      // the end
+      motors.stop();
+      while (1)
+        ;
+    }
+    else if (convertToBinary(line.readLine()) == 0b00011000)
+    {
+      Serial.print("crossroad zeroRight");
+      for (size_t i = 0; i < 8; i++)
+      {
+        Serial.print(lineState.linePoints[i].isLine);
+      }
+      Serial.println();
+      rotation.moveForwardFor(5);
+      // rotation.turnDegreesLeft(90);
+      while (convertToBinary(line.readLine()) != 0b00011000)
+      {
+        motors.zeroRight();
+      }
+    }
+    else if (convertToBinary(line.readLine()) != 0b00000000)
+    {
+      Serial.print("T-crossroad zeroLeft");
+      for (size_t i = 0; i < 8; i++)
+      {
+        Serial.print(lineState.linePoints[i].isLine);
+      }
+      Serial.println();
+      while (convertToBinary(line.readLine()) != 0b00011000)
+      {
+        motors.zeroLeft();
+      }
+    }
+
+    break;
+  case 0b00000000:
+    rotation.moveForwardFor(5);
+    rotation.turnDegreesRight(180);
+    Serial.print("turn around");
+    for (size_t i = 0; i < 8; i++)
+    {
+      Serial.print(lineState.linePoints[i].isLine);
+    }
+    Serial.println();
+    while (convertToBinary(line.readLine()) != 0b00011000)
+    {
+      motors.zeroLeft();
+    }
+
+    break;
+  }
+}
 
 
 // movement.cpp
@@ -248,8 +352,6 @@ void setLeftMotorSpeed(int speed)
   {
     _left_speed = speed;                 // set the left motor speed
     analogWrite(LEFT_SPEED_PIN, _left_speed);    // update PWM output left motor
-    Serial.print("Left Speed Set to: ");
-    Serial.println(_left_speed);
   }
 }
 
@@ -263,8 +365,6 @@ void setRightMotorSpeed(int speed)
   {
     _right_speed = speed;                 // set the right motor speed
     analogWrite(RIGHT_SPEED_PIN, _right_speed);    // update PWM output left motor
-    Serial.print("Right Speed Set to: ");
-    Serial.println(_right_speed);
   }
 }
 
@@ -314,22 +414,15 @@ void rotationZeroLeft(float distance)
     _leftCount = 0;
     _rightCount = 0;
     int rotations = round(distance / 17 * 40);
-    Serial.print("Target Rotations: ");
-    Serial.println(rotations);
   if (millis() > timer)
   {
     while(_leftCount <= rotations && _rightCount <= rotations)
     {
-      motorZeroLeft(255, 0); 
-       Serial.print("Left count: ");
-       Serial.println(_leftCount);
-       Serial.print("Right count: ");
-       Serial.println(_rightCount);   
+      motorZeroLeft(255, 0);    
     }
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationZeroRight(float distance)
@@ -338,23 +431,16 @@ void rotationZeroRight(float distance)
   _leftCount = 0;
   _rightCount = 0;
   int rotations = round(distance / 17 * 40);
-  Serial.print("Target Rotations: ");
-  Serial.println(rotations);
   if (millis() > timer)
   {
     int rotations = round(distance / 17 * 40);
     while(_leftCount <= rotations && _rightCount <= rotations)
       {
        motorZeroRight(0, 255);
-       Serial.print("Left count: ");
-       Serial.println(_leftCount);
-       Serial.print("Right count: ");
-       Serial.println(_rightCount);
       }
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationForward(float distance)
@@ -363,22 +449,15 @@ void rotationForward(float distance)
   _leftCount = 0;
   _rightCount = 0;
   int rotations = round(distance / 17 * 40);
-  Serial.print("Target Rotations: ");
-  Serial.println(rotations);
   if (millis() > timer)
   {
     while(_leftCount <= rotations && _rightCount <= rotations)
       {
         motorForward(0, 0);
-        Serial.print("Left count: ");
-        Serial.println(_leftCount);
-        Serial.print("Right count: ");
-        Serial.println(_rightCount);
       }
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationBackward(float distance)
@@ -387,22 +466,15 @@ void rotationBackward(float distance)
   _leftCount = 0;
   _rightCount = 0;
   int rotations = round(distance / 17 * 40);
-  Serial.print("Target Rotations: ");
-  Serial.println(rotations);
   if (millis() > timer)
   {
     while(_leftCount <= rotations && _rightCount <= rotations)
       {
        motorBackward(255, 255);
-       Serial.print("Left count: ");
-       Serial.println(_leftCount);
-       Serial.print("Right count: ");
-       Serial.println(_rightCount);
       }
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 
@@ -418,10 +490,6 @@ void rotationLeftTurnFix(float distance)
     while ((_leftCount < leftRotations) && (_rightCount < rightRotations))
     {
       motorForward(69,0);
-      Serial.print("Left count: ");
-      Serial.println(_leftCount);
-      Serial.print("Right count: ");
-      Serial.println(_rightCount);
     }
     timer = millis() + COUNT_INTERVAL;
   }
@@ -434,23 +502,16 @@ void rotationLeftTurn(float distance)
   _leftCount = 0;
   _rightCount = 0;
   int rotations = round(distance / 17 * 40);
-  //Serial.print("Target Rotations: ");
-  //Serial.println(rotations);
   if (millis() > timer)
   {
     while(_leftCount < rotations && _rightCount < rotations)
       {
        motorForward(50, 0);
-       Serial.print("Left count: ");
-       Serial.println(_leftCount);
-       Serial.print("Right count: ");
-       Serial.println(_rightCount);
       }
       
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationRightTurn(float distance)
@@ -459,28 +520,20 @@ void rotationRightTurn(float distance)
   _leftCount = 0;
   _rightCount = 0;
   int rotations = round(distance / 17 * 40);
-  Serial.print("Target Rotations: ");
-  Serial.println(rotations);
   if (millis() > timer)
   {
     while(_leftCount <= rotations && _rightCount <= rotations)
      {
        motorForward(0,50);
-       //Serial.print("Left count: ");
-       //Serial.println(_leftCount);
-       //Serial.print("Right count: ");
-       //Serial.println(_rightCount);
      }
     timer = millis()+500;
   }
   rotationStop();
-  Serial.println("Target reached. Stopping motors.");
 }
 
 void rotationStop()
 {
     motorStop();
-    //timer = millis()+500;
 }
 
 void lineFollow()
@@ -520,4 +573,108 @@ void objectAvoid()
     motors.stop();
     rotation.turnDegreesRight(180);
   }
+}
+
+int detectChange()
+{
+  lineSensorData newLineState = line.readLine();
+  for (int i = 0; i < 8; i++)
+  {
+    if (newLineState.linePoints[i].isLine != lineState.linePoints[i].isLine)
+    {
+      lineState = newLineState;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+uint8_t convertToBinary(lineSensorData line)
+{
+  uint8_t decimal = 00000000;
+  for (int i = 0; i < 8; i++)
+  {
+    if (line.linePoints[i].isLine)
+    {
+      decimal |= 1 << i;
+    }
+  }
+  return decimal;
+}
+
+int intersection[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+int left[8] = {0, 0, 0, 0, 1, 1, 1, 1};
+int right[8] = {1, 1, 1, 1, 0, 0, 0, 0};
+bool compareArray(int array1[], int array2[]) 
+{
+  bool equal = true;
+  for (int i = 0; i < 8; i++)
+  {
+    if (array1[i] != array2[i])
+    {
+      equal = false;
+    }
+  }
+  return equal;
+}
+
+
+void startMaze(){
+  rotation.moveForwardFor(7);
+    motors.stop();
+    lineState = line.readLine();
+    while (convertToBinary(line.readLine()) != 0b11111111)
+    {
+        moveWithLine();
+    }
+     
+    // // grab the cone 
+    lineState = line.readLine();
+    uint8_t decimal = convertToBinary(lineState);
+    while (decimal == 0b11111111)
+    {
+        Serial.println(decimal);
+        lineState = line.readLine();
+        decimal = convertToBinary(lineState);
+        motors.forward();
+    }
+    motors.stop();
+    while (convertToBinary(line.readLine()) != 0b00011000)
+    {
+        motors.zeroLeft(70);
+    }
+    while (convertToBinary(line.readLine()) != 0b00000000)
+    {
+        moveWithLine();
+    }
+    //ready = true;
+}
+
+void moveWithLine() 
+{
+    lineState = line.readLine();
+    uint8_t decimal = convertToBinary(lineState);
+    switch (decimal)
+    {
+default:
+        motors.stop();
+        break;
+    case 0b00011000:
+        motors.forward();
+        break;
+    case 0b01110000:
+    case 0b00110000:
+    case 0b01100000:
+    case 0b11000000:
+    case 0b00111000:
+        motors.zeroLeft();
+        break;
+    case 0b00001100:
+    case 0b00001110:
+    case 0b00000110:
+    case 0b00000011:
+    case 0b00011100:
+        motors.zeroRight();
+        break;
+    }
 }
