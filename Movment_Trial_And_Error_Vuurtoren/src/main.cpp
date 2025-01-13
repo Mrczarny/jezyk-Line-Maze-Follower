@@ -83,7 +83,7 @@ void rotationStop();
 void rotationLeftTurnFix(float distance);
 void lineFollow();
 void objectAvoid();
-// uint8_t convertToBinary(lineSensorData line);
+uint8_t convertToBinary(lineSensorData line);
 int detectChange();
 bool compareArray(int array1[], int array2[]);
 void moveWithLine();
@@ -119,14 +119,15 @@ void setup()
 
 void loop() 
 {
-  slaveCommunication();
-  //startMaze();
+  Serial.println("Loop is running");
+
+  //slaveCommunication();
+  startMaze();
 
   // Get the total distance in centimeters
-  float distanceTraveled = getTotalDistance();
+  float distanceTraveled = rotation.getTotalDistance();
   Serial.print("Total Distance Traveled: ");
-  Serial.print(distanceTraveled);
-  Serial.println(" cm");  // Display distance in centimeters
+  Serial.println(distanceTraveled);
 
   lineState = line.readLine();
   uint8_t decimal = convertToBinary(lineState);
@@ -599,18 +600,18 @@ int detectChange()
   return 0;
 }
 
-// uint8_t convertToBinary(lineSensorData line)
-// {
-//   uint8_t decimal = 00000000;
-//   for (int i = 0; i < 8; i++)
-//   {
-//     if (line.linePoints[i].isLine)
-//     {
-//       decimal |= 1 << i;
-//     }
-//   }
-//   return decimal;
-// }
+uint8_t convertToBinary(lineSensorData line)
+{
+  uint8_t decimal = 00000000;
+  for (int i = 0; i < 8; i++)
+  {
+    if (line.linePoints[i].isLine)
+    {
+      decimal |= 1 << i;
+    }
+  }
+  return decimal;
+}
 
 int intersection[8] = {1, 1, 1, 1, 1, 1, 1, 1};
 int left[8] = {0, 0, 0, 0, 1, 1, 1, 1};
@@ -629,36 +630,152 @@ bool compareArray(int array1[], int array2[])
 }
 
 
-void startMaze(){
+void startMaze()
+{
+  gripper1.gripper(gripper1._OpenGripper);
+  rotation.moveForwardFor(8);
+  motor.stop();
+  lineState = line.readLine();
+  while (convertToBinary(line.readLine()) != 0b11111111)
+  {
+    lineState = line.readLine();
+    for (size_t i = 0; i < 8; i++)
+    {
+      Serial.print(" ");
+      Serial.print(lineState.linePoints[i].isLine);
+    }
+    Serial.println();
+    motor.forward();
+  }
+  motor.stop();
+  gripper1.gripper(gripper1._CloseGripper);
+  lineState = line.readLine();
+  uint8_t decimal = convertToBinary(lineState);
   rotation.moveForwardFor(7);
-    motors.stop();
-    lineState = line.readLine();
-    while (convertToBinary(line.readLine()) != 0b11111111)
-    {
-        moveWithLine();
-    }
-     
-    // // grab the cone 
-    lineState = line.readLine();
-    uint8_t decimal = convertToBinary(lineState);
-    while (decimal == 0b11111111)
-    {
-        Serial.println(decimal);
-        lineState = line.readLine();
-        decimal = convertToBinary(lineState);
-        motors.forward();
-    }
-    motors.stop();
-    while (convertToBinary(line.readLine()) != 0b00011000)
-    {
-        motors.zeroLeft(70);
-    }
-    while (convertToBinary(line.readLine()) != 0b00000000)
-    {
-        moveWithLine();
-    }
-    //ready = true;
+  rotation.turnDegreesLeft(90);
+  while (convertToBinary(line.readLine()) != 0b11011011)
+  {
+    motor.forward();
+  }
+  while (convertToBinary(line.readLine()) != 0b11000011)
+  {
+    moveWithLine();
+  }
+  motor.stop();
+  ready = true;
 }
+
+void moveWithLine()
+{
+  //Serial.println("Move with line");
+  lineState = line.readLine();
+  uint8_t decimal = convertToBinary(lineState);
+  //Serial.println(decimal);
+  switch (decimal)
+  {
+    default:
+      motor.forward();  
+      break;
+    case 0b11011011:
+      isOnLine = true; //communication
+      motor.forward();
+      break;
+    case 0b11110011:
+    case 0b11100011:
+    case 0b11111011:
+      isOnLine = true; //communication
+      //left
+      motor.zeroLeft();
+      break;
+    case 0b11001111:
+    case 0b11000111:
+    case 0b11011111:
+      isOnLine = true; //communication
+      motor.zeroRight();
+      break;
+    case 0b11111111:
+      isOnLine = true; //communication
+      motor.stop();
+      break;
+  }
+}
+
+void findEnd()
+{
+  lineState = line.readLine();
+  while (convertToBinary(line.readLine()) != 0b11111111)
+  {
+    lineState = line.readLine();
+    if(detectChange() == 1){
+      if(tryFindLine() == true){
+        isOnLine = true; //communication
+        moveWithLine();
+      }
+    }
+  }
+  motor.stop();
+  gripper1.gripper(gripper1._OpenGripper);
+  rotation.moveBackwardFor(10);
+  finished = true;
+}
+
+int detectChange()
+{
+  // line
+  lineSensorData newLineState = line.readLine();
+  for (int i = 0; i < 8; i++)
+  {
+    if (newLineState.linePoints[i].isLine != lineState.linePoints[i].isLine)
+    {
+      lineState = newLineState;
+      Serial.println("Change detected");
+      for (size_t i = 0; i < 8; i++)
+      {
+        Serial.print(" ");
+        Serial.print(lineState.linePoints[i].isLine);
+      }
+      Serial.println(convertToBinary(lineState));
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int Find(uint8_t arr[], uint8_t x)
+{
+  int n = sizeof(arr) / sizeof(arr[0]);
+  for (int i = 0; i < n; i++)
+    if (arr[i] == x)
+      return i;
+  return -1;
+}
+
+boolean tryFindLine() {
+  isOnLine = false; //communication
+  Serial.println("Try find line");
+  long timer = millis();
+  while (millis() - timer < 200)
+  {
+    motor.zeroLeft();
+    if (Find(lineForward,convertToBinary(line.readLine())) != -1)
+    {
+      isOnLine = true; //communication
+      return true;
+    }
+  }
+  timer = millis();
+  while (millis() - timer < 400)
+  {
+    motor.zeroRight();
+    if (Find(lineForward,convertToBinary(line.readLine())) != -1)
+    {
+      isOnLine = true; //communication
+      return true;
+    }
+  }
+  return false;
+}
+
 
 void moveWithLine() 
 {
