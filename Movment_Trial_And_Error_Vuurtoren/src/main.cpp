@@ -4,6 +4,7 @@
 #include <motors.h>
 #include <line.h>
 #include <sonar.h>
+#include <SoftwareSerial.h>
 /*
 * * * * * * ============================
  * * * * *  ============================
@@ -32,10 +33,14 @@
 #define SONAR_TRIGGER_PIN 4              // sonar trigger
 #define LEFT_MAX_SPEED 255               // maximum speed for left motor
 #define RIGHT_MAX_SPEED 255              // maximum speed for right wheel
-#define PI 3.141592
+#define SERVO_PIN 6
+//#define PI 3.141592
 #define FORWARD HIGH             // TBD, but define forward as 1
 #define BACKWARD LOW             // TBD, but define backward as 0
 
+const int HC12_RX = 0;
+const int HC12_TX = 1;
+SoftwareSerial HC12(HC12_RX, HC12_TX);
 
 // #define COUNT_INTERVAL 10                // 10ms interval for interrupt
 
@@ -78,16 +83,21 @@ void rotationStop();
 void rotationLeftTurnFix(float distance);
 void lineFollow();
 void objectAvoid();
-uint8_t convertToBinary(lineSensorData line);
+// uint8_t convertToBinary(lineSensorData line);
 int detectChange();
 bool compareArray(int array1[], int array2[]);
 void moveWithLine();
 void startMaze();
+int calculateChecksum(String data);
+void slaveCommunication();
+unsigned long getRandomInterval(unsigned long minInterval, unsigned long maxInterval);
 
 
 void setup()
 {
   Serial.begin(9600);
+  HC12.begin(9600);
+  Serial.println("Slave: Ready to receive requests.");
   pinMode(SONAR_ECHO_PIN, INPUT);
   pinMode(SONAR_TRIGGER_PIN, OUTPUT);
   pinMode(LEFT_MOTOR_ROTATION, INPUT_PULLUP);
@@ -109,7 +119,14 @@ void setup()
 
 void loop() 
 {
-  startMaze();
+  slaveCommunication();
+  //startMaze();
+
+  // Get the total distance in centimeters
+  float distanceTraveled = getTotalDistance();
+  Serial.print("Total Distance Traveled: ");
+  Serial.print(distanceTraveled);
+  Serial.println(" cm");  // Display distance in centimeters
 
   lineState = line.readLine();
   uint8_t decimal = convertToBinary(lineState);
@@ -117,12 +134,6 @@ void loop()
   switch (decimal)
   {
   default:
-  Serial.print("unknown state: ");
-  for (size_t i = 0; i < 8; i++)
-  {
-    Serial.print(lineState.linePoints[i].isLine);
-  }
-  Serial.println();
     break;
 
   case 0b00011000:
@@ -433,7 +444,6 @@ void rotationZeroRight(float distance)
   int rotations = round(distance / 17 * 40);
   if (millis() > timer)
   {
-    int rotations = round(distance / 17 * 40);
     while(_leftCount <= rotations && _rightCount <= rotations)
       {
        motorZeroRight(0, 255);
@@ -589,18 +599,18 @@ int detectChange()
   return 0;
 }
 
-uint8_t convertToBinary(lineSensorData line)
-{
-  uint8_t decimal = 00000000;
-  for (int i = 0; i < 8; i++)
-  {
-    if (line.linePoints[i].isLine)
-    {
-      decimal |= 1 << i;
-    }
-  }
-  return decimal;
-}
+// uint8_t convertToBinary(lineSensorData line)
+// {
+//   uint8_t decimal = 00000000;
+//   for (int i = 0; i < 8; i++)
+//   {
+//     if (line.linePoints[i].isLine)
+//     {
+//       decimal |= 1 << i;
+//     }
+//   }
+//   return decimal;
+// }
 
 int intersection[8] = {1, 1, 1, 1, 1, 1, 1, 1};
 int left[8] = {0, 0, 0, 0, 1, 1, 1, 1};
@@ -677,4 +687,55 @@ default:
         motors.zeroRight();
         break;
     }
+}
+
+int calculateChecksum(String data) 
+{
+  int checksum = 0;
+  for (int i = 0; i < data.length(); i++) {
+    checksum += data[i];
+  }
+  return checksum;
+}
+
+void slaveCommunication()
+{
+  static unsigned long timeSlave = 0;
+  //int slaveID = 2;
+
+  if (millis() > timeSlave)
+  {
+    Serial.println("test");
+    if (HC12.available() > 0) 
+    {
+      Serial.println("HC12 ready");
+      String receivedMessage = HC12.readStringUntil('\n');
+      Serial.println("Slave: Received message: " + receivedMessage);
+      
+
+      // Process request from master
+      if (receivedMessage.startsWith("REQUEST: Send data to Master from Slave 2")) {
+        // Create data to send 
+        String leftSpeedStr = String(_left_speed);
+        String data = leftSpeedStr;//"Test";
+        //String speedLeftData = _left_speed;
+        //String speedRightData = _right_speed;
+
+
+        // Calculate checksum
+        int checksum = calculateChecksum(data);
+
+        // Send data and checksum back to master
+        String(responseMessage) = data + "|" + String(checksum);
+        HC12.println(responseMessage);
+        Serial.println("Slave: Sent data to Master: " + responseMessage);
+        timeSlave += 20;
+      }
+    }
+  }
+}
+
+unsigned long getRandomInterval(unsigned long minInterval, unsigned long maxInterval)
+{
+  return random(minInterval, maxInterval);
 }
